@@ -1,0 +1,141 @@
+package com.test1;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.logging.LogEntries;
+import org.openqa.selenium.logging.LogEntry;
+import org.openqa.selenium.logging.LogType;
+import org.openqa.selenium.logging.LoggingPreferences;
+import org.openqa.selenium.logging.Logs;
+import org.openqa.selenium.remote.CapabilityType;
+import org.openqa.selenium.remote.DesiredCapabilities;
+
+public class perflogs {
+	public static String nfile="";
+	public static String dirPath="C:\\Users\\503225810\\Documents";
+
+	public static void main(String[] args) throws InterruptedException {
+		Sheduler sheduler = new Sheduler();
+		System.setProperty("webdriver.chrome.driver","C:\\Users\\503225810\\Documents\\chromedriver.exe");
+
+		DesiredCapabilities capabilities = DesiredCapabilities.chrome();
+		LoggingPreferences loggingprefs = new LoggingPreferences();
+		loggingprefs.enable(LogType.BROWSER, Level.ALL);
+		capabilities.setCapability(CapabilityType.LOGGING_PREFS, loggingprefs);
+		//capabilities.setCapability("browserstack.debug", "true");
+		WebDriver driver = new ChromeDriver(capabilities);
+		//Webdriver driver = new ChromeDriver(capabilities);;
+		// Create file every 12 hours
+		Timer t = new Timer();
+		TimerTask tt = new TimerTask() {
+			List<String> file= new ArrayList<>(); 
+			@Override
+			public void run() {
+				// TODO Auto-generated method stub
+				nfile = getFileWithDate("consolelog.txt",".","MM-dd-yyy_HH-mm");
+				sheduler.setFilename(nfile);
+				System.out.println("file----:"+nfile);
+				
+			};
+		};
+		 t.scheduleAtFixedRate(tt,new Date(),43200000);    //43200000
+		System.out.println(nfile);
+		String baseUrl = "https://10.177.196.123/dcs/home/index.html#/portal/standalone/surveillance";
+		//Getting error at sheduler.getFilename()
+		Path path = Paths.get(dirPath+"\\"+ sheduler.getFilename());
+		System.out.println(path);
+		driver.get(baseUrl);
+        driver.manage().window().maximize() ;
+        driver.findElement(By.id("details-button")).click();
+		driver.findElement(By.id("proceed-link")).click();
+		Thread.sleep(60000);
+		//Logs logs1= driver.manage().logs();
+		//System.out.println("Log types: " + logs1.getAvailableLogTypes());
+		 //printLog(LogType.BROWSER);
+		LogEntries logEntries = driver.manage().logs()
+	            .get(org.openqa.selenium.logging.LogType.BROWSER);
+		//System.out.println(logEntries);
+	for (LogEntry entry :logEntries ) {
+	    System.out.println((String.format("%s %s %s\n", new Date(entry.getTimestamp()), entry.getLevel(),
+	                entry.getMessage())));
+	    appendToFile(path, (String.format("%s %s %s\n", new Date(entry.getTimestamp()), entry.getLevel(),
+                entry.getMessage())));
+	    }
+	//Thread.sleep(20000);
+	//System.out.println("hello world");
+	//System.out.println(logEntries.getAll());
+	driver.close();
+		
+	}
+	private static void appendToFile(Path path, String content) {
+		
+	    try (BufferedWriter writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8, StandardOpenOption.APPEND,StandardOpenOption.CREATE)) {
+	        writer.write(content);
+	        writer.newLine();
+	    } catch (IOException e) {
+	        e.printStackTrace();
+	    }
+}
+	public static String getFileWithDate(String fileName, String fileSaperator, String dateFormat) {
+		boolean flag = false;
+	    String FileNamePrefix = fileName.substring(0, fileName.lastIndexOf(fileSaperator));
+	    String FileNameSuffix = fileName.substring(fileName.lastIndexOf(fileSaperator)+1, fileName.length());
+	    //System.out.println("File= Prefix~Suffix:"+FileNamePrefix +"~"+FileNameSuffix);
+	    
+	    String newFileName = new SimpleDateFormat("'"+FileNamePrefix+"_'"+dateFormat+"'"+fileSaperator+FileNameSuffix+"'").format(new Date());
+	    System.out.println("New File:"+newFileName);
+	    //last modified file
+	   /* File directory = new File(dirPath);
+	    File[] files = directory.listFiles(File::isFile);
+	    long lastModifiedTime = Long.MIN_VALUE;
+	    File chosenFile = null;
+
+	    if (files != null)
+	    {
+	        for (File file : files)
+	        {
+	            if (file.lastModified() > lastModifiedTime)
+	            {
+	                chosenFile = file;
+	                lastModifiedTime = file.lastModified();
+	            }
+	        }
+	    }
+	    //System.out.println(chosenFile);
+	    //System.out.println(chosenFile.getName());
+	    String existingfile = chosenFile.getName();*/
+	    
+	    
+	    File stockFile = new File(dirPath + "\\" +newFileName);
+	    try {
+	        flag = stockFile.createNewFile();
+	    } catch (IOException ioe) {
+	         System.out.println("Error while Creating File in Java" + ioe);
+	    }
+
+	    System.out.println("stock file" + stockFile.getPath() + " created ");
+	    return newFileName;
+	}
+	
+	
+}
